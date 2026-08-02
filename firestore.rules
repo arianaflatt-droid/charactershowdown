@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Teacher profiles: only the owning teacher can read/write their own profile.
+    match /teachers/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Rooms: any signed-in user (teacher or anonymous student) can read/write.
+    // This is intentionally permissive for classroom simplicity — anyone with
+    // the 4-letter room code can join and play. Tighten further if needed
+    // (e.g. restrict writes to specific fields per role).
+    match /rooms/{code} {
+      allow read, write: if request.auth != null;
+
+      match /votes/{voteId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+}
