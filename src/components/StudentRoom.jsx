@@ -114,7 +114,7 @@ export default function StudentRoom({ code, studentId, onBack }) {
             <div>
               <div className={`result-banner ${cr.guessCorrect ? "bad" : "good"}`}>
                 <div className="result-icon">{cr.guessCorrect ? "✘" : "✔"}</div>
-                <div>{cr.guessCorrect ? "Teacher guessed right! Teacher +1" : "Teacher guessed wrong! Class +1"}</div>
+                <div>{cr.guessCorrect ? "Teacher guessed right! Teacher +1" : cr.guessText === "(teacher conceded)" ? "Teacher gave up! Class +1" : "Teacher guessed wrong! Class +1"}</div>
               </div>
               <div className="single-card-wrap">
                 <CharCard entry={cr.winnerSide === "a" ? cr.charA : cr.charB} side={cr.winnerSide} className="solo winner" />
@@ -127,7 +127,9 @@ export default function StudentRoom({ code, studentId, onBack }) {
                 <p className="hint" style={{ marginTop: 10 }}>
                   {myVote ? (myVote === cr.winnerSide ? "✔ You voted for the winner!" : "You voted for the other one.") : "You didn't vote this round."}
                 </p>
-                <p className="hint" style={{ margin: "2px 0 0" }}>Teacher guessed: "{cr.guessText}"</p>
+                <p className="hint" style={{ margin: "2px 0 0" }}>
+                  {cr.guessText === "(teacher conceded)" ? "The teacher conceded this round." : `Teacher guessed: "${cr.guessText}"`}
+                </p>
               </div>
             </div>
           )}

@@ -189,6 +189,35 @@ export default function TeacherRoom({ code, profile, onBack, onProfileUpdate }) 
     setBusy(false);
   };
 
+  const concedeRound = async () => {
+    if (!cr || !cr.winnerSide || cr.finished) return;
+    const confirmed = window.confirm("Give up on this round? The class will get the point.");
+    if (!confirmed) return;
+    const winnerEntry = cr.winnerSide === "a" ? cr.charA : cr.charB;
+    setBusy(true);
+    setGuessFeedback("");
+    try {
+      await updateDoc(doc(db, "rooms", code), {
+        scoreStudents: room.scoreStudents + 1,
+        usedKeys: [...room.usedKeys, cr.charA.key, cr.charB.key],
+        "currentRound.guessText": "(teacher conceded)",
+        "currentRound.guessCorrect": false,
+        "currentRound.finished": true,
+        roundHistory: [...room.roundHistory, { category: cr.category, winnerName: winnerEntry.n, guess: "(conceded)", correct: false }],
+      });
+      // Bank the point into the teacher's persistent profile right away.
+      const profileRef = doc(db, "teachers", profile.uid);
+      const freshSnap = await getDoc(profileRef);
+      const freshProfile = freshSnap.exists() ? freshSnap.data() : profile;
+      const newProfile = { ...freshProfile, totalStudentPoints: freshProfile.totalStudentPoints + 1 };
+      await setDoc(profileRef, newProfile);
+      onProfileUpdate(newProfile);
+    } catch (e) {
+      setError("Couldn't concede the round — try again.");
+    }
+    setBusy(false);
+  };
+
   const nextRound = async () => {
     setBusy(true);
     try {
@@ -285,6 +314,9 @@ export default function TeacherRoom({ code, profile, onBack, onProfileUpdate }) 
           <input className="guess-input" placeholder="Type the character's name…" value={guessText}
             onChange={(e) => setGuessText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitGuess()} />
           <button className="submit-btn" disabled={!guessText.trim() || busy} onClick={() => submitGuess()}>Submit Guess</button>
+          <button className="mcg-btn mcg-btn-secondary" style={{ marginTop: 10 }} disabled={busy} onClick={concedeRound}>
+            🏳️ Concede Round (class scores)
+          </button>
         </div>
       )}
 
@@ -303,7 +335,9 @@ export default function TeacherRoom({ code, profile, onBack, onProfileUpdate }) 
               <div className="big-score-plus">{cr.guessCorrect ? "+1" : ""}</div>
               <div className="big-score-half class"><div className="big-score-label">Class</div><div className="big-score-num">{room.scoreStudents}</div></div>
             </div>
-            <p className="hint" style={{ marginTop: 10 }}>Your guess: "{cr.guessText}"</p>
+            <p className="hint" style={{ marginTop: 10 }}>
+              {cr.guessText === "(teacher conceded)" ? "You conceded this round." : `Your guess: "${cr.guessText}"`}
+            </p>
           </div>
           <button className="mcg-btn mcg-btn-primary" style={{ marginBottom: 10 }} disabled={busy} onClick={nextRound}>Next Round</button>
         </div>
